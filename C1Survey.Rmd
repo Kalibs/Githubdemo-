@@ -1,0 +1,169 @@
+---
+title: "Lab: Class One Survey Analysis- Georgewilliam Klaibbala"
+author: "Georgewilliam_Kalibbala"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# for SPSS (read_sav()), stata (read_dta()), SAS(read_sas()) and xpt (read_xpt()) files
+library(haven) 
+library(readr) 
+library(dplyr) 
+library(openxlsx) 
+```
+
+```{r}
+# install.packages("pacman")
+pacman::p_load(haven, readr, dplyr, openxlsx)
+```
+
+1.  **Import class one survey data from our Github site (<https://github.com/kijohnson/ADA-2024>) (The dataset is called ‘Class 1 Survey Fall 2024_di.csv’), calling the R dataframe that you create C1survey.**
+
+```{r}
+C1survey <-
+ read_csv(
+   "https://raw.githubusercontent.com/kijohnson/ADA-2024/main/Class%201%20(Getting%20started%20and%20RR%20I)/Lab/Class%201%20Survey%20Fall%202024_di.csv"
+   )
+```
+
+2.  **Determine: a. the number of observations (i.e. the number of people who filled out the survey) and b. the number of variables in the dataframe.**
+
+    ```{r}
+    dim(C1survey)
+
+
+    ```
+
+    29 observation
+
+    27 Variables
+
+3.  **a. Rename the column variables to something shorter and that is descriptive of what the variable is about (for example like_dogs for the ‘Do you like dogs?’ question variable) and b. Display that they are renamed.**
+
+```{r}
+#use names function to rename the 27 variables in order
+
+names(C1survey)[1:27]<-c("id", "like_cats", "like_dogs", "have_desert", "slogan",
+"fav_day", "larkORowl", "fav_food", "fav_drink", "fav_season", "fav_month", "hobby",
+"program", "specialization", "stat_software", "R_exp", "coding_comfort", "coding_length",
+"top_three","public_health_interest", "fav_num", "bday", "bmonth", "country", "state",
+"city", "highest_educ_level")
+
+
+
+# create list of renamed variables in the object varlist
+colnames(C1survey)
+
+```
+
+4.  **Write code to determine and display the number of factor, integer, numerical, and character variables there are in the C1survey data-set.**
+
+```{r}
+num_factor <- sum(sapply(C1survey, is.factor))
+num_integer <- sum(sapply(C1survey, is.integer))
+num_numerical <- sum(sapply(C1survey, is.numeric))
+num_character <- sum(sapply(C1survey, is.character))
+
+
+cat("Number of factor (categorical) variables:", num_factor, "\n")
+cat("Number of integer variables:", num_integer, "\n")
+cat("Number of numerical variables:", num_numerical, "\n")
+cat("Number of character (object) variables:", num_character, "\n")
+
+
+
+sapply(C1survey, class)
+```
+
+```{r}
+cat("Number of factor (categorical) variables:", sum(sapply(C1survey, is.factor)), "\n")
+cat("Number of integer variables:", sum(sapply(C1survey, is.integer)), "\n")
+cat("Number of numerical variables:", sum(sapply(C1survey, is.numeric)), "\n")
+cat("Number of character (object) variables:", sum(sapply(C1survey, is.character)), "\n")
+```
+
+5.  **a. Using code, check the bday and bmonth variables for any unusual or missing values. If you find any,**
+
+    ```{r}
+    # Check the data type of bday and bmonth
+    print(summary(C1survey$bday))
+    print(summary(C1survey$bmonth))
+
+    # Checking the data struture of bday and bmonth
+    str(C1survey$bday)
+    str(C1survey$bmonth)
+
+    # Check for missing values in bday & bmonth
+    sum(is.na(C1survey$bday))
+    sum(is.na(C1survey$bmonth))
+    ```
+
+    **b. describe what you will do with the unusual values in a comment before or immediately following the code that does it, and**
+
+    ```{r}
+    # substituted the text-like responses with their corresponding values in the bday variable. 
+    C1survey$bday <- gsub("March 31st","31", C1survey$bday)
+    C1survey$bday <- gsub("May 21-report 21","21",C1survey$bday)
+
+    # substituted the text-like responseswith their corresponding values in the bmonth variable.
+
+    C1survey$bmonth <- gsub("March", "3", C1survey$bmonth)
+    C1survey$bmonth <- gsub("September", "9", C1survey$bmonth)
+    C1survey$bmonth <- gsub("February", "2", C1survey$bmonth)
+    C1survey$bmonth <- gsub("May 21-report 5", "5", C1survey$bmonth)
+    C1survey$bmonth <- gsub("July", "7", C1survey$bmonth) 
+    ```
+
+6.  **c. after you have cleaned up any unusual values, find the median bday and month. \*Note: please make sure that your bday and month variables are numeric before doing statistics**
+
+```{r}
+# Converting bday to numeric
+C1survey$bday <- as.numeric(C1survey$bday)
+
+# Converting bmonth to numeric
+C1survey$bmonth <- as.numeric(C1survey$bmonth)
+
+# find the median bday and month
+median_bday <- median(C1survey$bday)
+median_bmonth <- median(C1survey$bmonth)
+
+# Display the results
+cat("Median bday:", median_bday, "\n")
+cat("Median bmonth:", median_bmonth, "\n")
+
+```
+
+6.  **a. Create a new variable called bseason that gives the season according to Northern Meteorological season in which respondents were born (winter = 12/1 to 2/29, spring = 3/1 to 5/31, summer = 6/1 to 8/31, fall = 9/1 to 11/30). b. Using the table function, print a table of Seasons in the columns and bmonths in the rows that allows you to check that the coding is correct c. Sum the columns using the addmargins function to answer the question of how many classmates were born in each season? Include your answer in the code.**
+
+    ```{r}
+    # Create the bseason variable
+    C1survey$bseason <- case_when(
+      (C1survey$bmonth == 12 & C1survey$bday >= 1) | (C1survey$bmonth == 1) | (C1survey$bmonth == 2 & C1survey$bday <= 29) ~ "Winter",
+      (C1survey$bmonth == 3 & C1survey$bday >= 1) | (C1survey$bmonth >= 4 & C1survey$bmonth <= 5) | (C1survey$bmonth == 5 & C1survey$bday <= 31) ~ "Spring",
+      (C1survey$bmonth == 6 & C1survey$bday >= 1) | (C1survey$bmonth >= 7 & C1survey$bmonth <= 8) | (C1survey$bmonth == 8 & C1survey$bday <= 31) ~ "Summer",
+      (C1survey$bmonth == 9 & C1survey$bday >= 1) | (C1survey$bmonth >= 10 & C1survey$bmonth <= 11) | (C1survey$bmonth == 11 & C1survey$bday <= 30) ~ "Fall"
+    )
+
+    # Print a table of Seasons in the columns and bmonths in the rows
+    season_table <- table(C1survey$bmonth, C1survey$bseason)
+    print(season_table)
+
+    # Sum the rows to find out how many classmates were born in each season
+    season_summary <- addmargins(season_table, 1)
+    print(season_summary)
+
+    # Display the total number of classmates born in each season
+    cat("Number of classmates born in each season:\n")
+    print(season_summary["Sum", ])
+
+
+    ```
+
+7.  **Pick your favorite variable or variables to analyze, come up with a question you want to answer with that variable or variables, generate the code, and provide an answer to your question. Describe what you did using comments (i.e. #’s).**
